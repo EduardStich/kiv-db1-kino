@@ -1,0 +1,15 @@
+-- shrnutí pro zisky na 3. promítání
+SELECT CASE
+        WHEN o.LOGIN IS NULL THEN '(Zatím neprodané)'
+        ELSE o.LOGIN
+       END AS LOGIN,
+       SUM(v.CENA) AS ZISK_KINA,
+       CASE 
+        WHEN o.KREDIT IS NULL THEN ' '
+        ELSE TO_CHAR (o.KREDIT) 
+       END AS ZUSTATEK_PO_UTRATE
+FROM VSTUPENKA v
+JOIN PROMITANI p ON p.ID = v.PROMITANI_ID
+LEFT JOIN OSOBA o ON o.ID = v.OSOBA_ID
+WHERE p.ID = 3
+GROUP BY v.OSOBA_ID, o.LOGIN, o.KREDIT;

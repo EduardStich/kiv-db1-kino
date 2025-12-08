@@ -1,0 +1,20 @@
+-- tabulka pro přehled fungujících pozic
+CREATE OR REPLACE VIEW PRACOVNI_POZICE_INFO AS SELECT pp.NAZEV AS PRACOVNI_POZICE, 
+       s.NAZEV AS SMENA, 
+       o.LOGIN AS ZAMESTNANEC,
+       m.NAZEV AS MISTO,
+       d.DEN AS DEN,
+       (pp.MZDA + s.BONUS + d.BONUS) AS ZA_HODINU,
+       ((pp.MZDA + s.BONUS + d.BONUS)*7) AS ZA_SMENU,
+       CASE pp.FUNGUJE
+            WHEN 1 THEN 'ANO'
+            WHEN 0 THEN 'NE'
+       END AS FUNGUJE
+FROM PRACOVNI_POZICE pp
+JOIN PRACOVNI_POZICE_A_DNY ppd ON ppd.PRACOVNI_POZICE_ID = pp.ID
+JOIN DNY d ON d.ID = ppd.DNY_ID
+JOIN SMENA s ON s.ID = pp.SMENA_ID
+JOIN OSOBA o ON o.ID = pp.OSOBA_ID 
+JOIN MISTO m ON m.ID = pp.MISTO_ID
+WHERE o.SOUCAST_PERSONALU = 1 -- kontrola že všichni jsou zaměstnáni
+ORDER BY pp.NAZEV, o.LOGIN, s.NAZEV, m.NAZEV;

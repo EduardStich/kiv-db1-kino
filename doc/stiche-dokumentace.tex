@@ -1,0 +1,895 @@
+\documentclass[a4paper, 11pt]{article}
+
+% kódování
+\usepackage[T1]{fontenc}
+\usepackage[utf8x]{inputenc}
+\usepackage[czech]{babel}
+
+% font
+\usepackage[condensed]{roboto}
+\renewcommand{\familydefault}{\sfdefault}
+
+% uspořádání textu
+\usepackage[expansion=all]{microtype}
+\usepackage{ragged2e}
+
+% odsazení
+\usepackage[margin=2.5cm]{geometry} 
+
+% grafika
+\usepackage{graphicx}
+\usepackage{pdfpages} % pdf na jednu stránku
+\usepackage{booktabs,csvsimple}
+\usepackage{caption}
+\usepackage{amsmath}
+
+\graphicspath{{img/}{pdf/}}
+
+% sql kód
+\usepackage{listings}
+\usepackage{xcolor}
+
+\lstset{
+  language=SQL,
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{blue}\bfseries,
+  commentstyle=\color{gray},
+  stringstyle=\color{orange},
+  showstringspaces=false,
+  breaklines=true,
+  frame=single,
+  tabsize=2,
+  % česká diakritika v sql
+  literate=
+    {á}{{\'a}}1 {č}{{\v{c}}}1 {ď}{{\v{d}}}1 {é}{{\'e}}1 {ě}{{\v{e}}}1
+    {í}{{\'i}}1 {ň}{{\v{n}}}1 {ó}{{\'o}}1 {ř}{{\v{r}}}1 {š}{{\v{s}}}1
+    {ť}{{\v{t}}}1 {ú}{{\'u}}1 {ů}{{\r{u}}}1 {ý}{{\'y}}1 {ž}{{\v{z}}}1
+    {Á}{{\'A}}1 {Č}{{\v{C}}}1 {Ď}{{\v{D}}}1 {É}{{\'E}}1 {Ě}{{\v{E}}}1
+    {Í}{{\'I}}1 {Ň}{{\v{N}}}1 {Ó}{{\'O}}1 {Ř}{{\v{R}}}1 {Š}{{\v{S}}}1
+    {Ť}{{\v{T}}}1 {Ú}{{\'U}}1 {Ů}{{\r{U}}}1 {Ý}{{\'Y}}1 {Ž}{{\v{Z}}}1
+}
+
+% ostatní
+\author{Eduard Štich}
+\date{15. 11. 2025}
+
+\begin{document}
+
+% --- titulní strana ---
+\thispagestyle{empty}
+
+\includegraphics[width=2in]{image1.png}
+\vfill
+
+\begin{center}
+\section*{\LARGE{Kino}}
+\subsection*{KIV/DB1 -- Semestrální práce}
+\end{center}
+\vfill
+
+\begin{tabular}{@{}ll@{}}
+student: & Eduard Štich \\
+osobní číslo: & A25B0287P \\
+email: & stiche@students.zcu.cz \\
+datum: & 15. 11. 2025
+\end{tabular}
+\newpage
+
+% --- diagram ---
+\includepdf[width=\linewidth]{novy-diagram.pdf}
+
+% --- rozobr ---
+\section{Detailní popis a charakteristika zadání semestrální práce}
+
+\subsection{Zdůvodnění výběru tématu}
+
+Jako nosné téma databáze jsem zvolil kino, protože jeho provoz tvoří přehlednou síť vzájemně propojených entit (filmy, místa, promítání, vstupenky, osoby), v níž se přirozeně vyskytují všechny požadované konstrukce: vazba M:N, 3. NF a číselníkové tabulky. Díky častým návštěvám různých kin dobře znám některé provozní procesy, a tak dokáži zvolit vhodná testovací data. Toto téma mi zároveň umožní v rámci předmětu KIV/WEB snadno vytvořit webovou aplikaci.
+
+\subsection{Vymezení rozsahu}
+
+Databáze pokrývá kompletní řetězec ,,film $\rightarrow$ promítání $\rightarrow$ vstupenka $\rightarrow$ divák'' a související agendu se zaměstnanci; nezahrnuje však další provozní okruhy. Uchovává tedy filmy a jejich žánry, místa s kapacitami, časová pásma promítání, jednotlivé vstupenky včetně stavu (vydáno/rezervováno/zaplaceno) a osoby -- diváky i zaměstnance -- včetně jejich přihlašovacích údajů.
+
+Evidence zahrnuje pracovní pozice, směny, dny a bonusy, avšak neřeší kompletní mzdovou a účetní agendu. Dále neobsahuje skladové hospodaření s občerstvením, dodavatelské faktury, marketingové kampaně ani věrnostní systém; ty jsou ponechány jako možná rozšíření v navazujících předmětech.
+
+\subsection{Slovní charakteristika zpracovávaných dat}
+
+Datový model pracuje s devíti základními entitami, které pokrývají kompletní provozní agendu kina.
+
+\begin{list}{}{}
+\item Žánr (\texttt{ZANR}) slouží jako číselníková tabulka obsahující název a popis žánru; každý film je přiřazen právě k jednomu žánru.
+\item Film (\texttt{FILM}) uchovává název, stopáž v minutách, stručný popis a cizí klíč na žánr. Jedná se o hlavní informační jednotkou, která je dále vázána na konkrétní promítání.
+\item Místo (\texttt{MISTO}) reprezentuje promítací sál nebo jiný prostor kina. Má unikátní název, celkovou kapacitu sedadel a současně maximální počet zaměstnanců, kteří se zde mohou teoreticky vyskytovat během směny.
+\item Promítání (\texttt{PROMITANI}) spojuje film, sál a časový údaj -- slouce s cizími klíči vázané na film a místo, dále sloupec „od“ a „do“ který určuje čas začátku a konce, sloupec „datum“ jako kalendářní den; jedno promítání může mít libovolný počet prodaných vstupenek -- teoreticky až tolik, kolik činí kapacita místa.
+\item Osoba (\texttt{OSOBA}) eviduje fyzické osoby s unikátním přihlašovací jménem, heslem (v realizované aplikaci pak hashované), kontaktním e-mailem a aktuálním kreditem v Kč. Příznak „soucast\_personalu“ rozlišuje běžného diváka od zaměstnance.
+\item Vstupenka (\texttt{VSTUPENKA}) obsahuje cenu, příznak zaplaceno, číslo sedadla a cizí klíče na promítání a volitelně na osobu; každá vstupenka existuje v jediném exempláři a její stav určuje, zda je rezervace závazná.
+\item Smena (\texttt{SMENA}) definuje časový úsek práce („od“ a „do“) spolu s případným bonusem na hodinu; na jednu směnu je navázána sada pracovních pozic.
+\item Pracovni pozice (\texttt{PRACOVNI\_POZICE}) konkretizuje roli zaměstnance (např. pokladní, promítač, úklid), popis činnosti, základní mzdu a příznak „funguje“ určující, zda je daná pozice aktivní.
+\item Den (\texttt{DNY}) představuje číselníkovou tabulku pracovních dnů v týdnu s možností individuálního hodinového bonusu v daný den; přes asociativní tabulku \texttt{PRACOVNI\_POZICE\_A\_DNY} je poté možné určit dny ve které se pracovní pozice vykonává.
+\end{list}
+
+\subsection{Omezení a specifické požadavky}
+
+\subsubsection{Integritní omezení}
+\begin{list}{}{}
+\item \texttt{CHECK}  „stopaz“ >= 0 zajistí, že délka filmu bude nezáporná.
+\item \texttt{CHECK}  „kapacita“ >= 0 zajišťuje nezápornou teoretickou kapacitu prostoru pro diváky.
+\item \texttt{CHECK}  „kapacita\_personalu“ >= 0 zajišťuje nezápornou teoretickou kapacitu prostoru pro personál.
+\item \texttt{CHECK}  „cena“ >= 0 zajišťuje nezápornou cenu vstupenky.
+\item \texttt{CHECK}  „mzda“ >= 0 zajišťuje nezáporný základ mzdy pro pracovní pozici.
+\item \texttt{CHECK}  „sedadlo“ > 0 zajišťuje kladné číslo sedadla, jež odpovídá systému kina.
+\item \texttt{UNIQUE}  „login“ znemožňuje duplicitní přihlašovací jména.
+\end{list}
+
+\subsubsection{Referenční integrita}
+\begin{list}{}{}
+\item Všechny cizí klíče jsou definovány jako \texttt{NOT} \texttt{NULL} (kromě „osoba\_id“ u vstupenky a pracovní pozice, a „misto\_id“ u pracovní pozice, což umožňuje anonymní či nezakoupenou vstupenku, neobsazenou pozici a pozici s prozatím nenaplánovaným místem výkonu práce.
+\item Mazání nadřazených záznamů je omezeno existujícími vazbami -- např. nelze smazat záznam v tabulce \texttt{FILM}, na který existuje záznam s cizím klíčem v \texttt{PROMITANI}.
+\end{list}
+
+\subsubsection{Business pravidla implementovaná na aplikační úrovni}
+\begin{list}{}{}
+\item Počet vstupenek na promítání by v běžných případech neměl překročit kapacitu místa (\texttt{MISTO.kapacita}). Toto pravidlo není vynuceno na úrovni databáze -- kontroluje ho až aplikační vrstva.
+\item Počet zaměstanců na určité pracovní pozici, v daný čas, a na daném místě by měl odpovídat kapacitě personálu daného místa (\texttt{MISTO.kapacita\_personalu}), aby pozice mohla fungovat. Toto omeznení bude kontrolovat až aplikační vrstva.
+\item Promítání filmů by se neměla překrývat -- kontrolu časového překryvu (atributy „od“, „do“, „datum“ a „misto\_id“) řeší aplikační vrstva.
+\end{list}
+
+\subsubsection{Číselníkové a asociativní tabulky}
+\begin{list}{}{}
+\item \texttt{ZANR}, \texttt{DNY} a \texttt{SMENA} slouží jako číselníkové tabulky -- obsahují pouze statické údaje, do kterých běžný provoz pouze čte.
+\item Asociativní tabulka \texttt{PRACOVNI\_POZICE\_A\_DNY} umožňuje M:N vazbu mezi pozicí a dny, kdy může být vykonávána -- bez dodatečných atributů.
+\end{list}
+
+\subsubsection{Technická omezení}
+\begin{list}{}{}
+\item Všechny časové údaje („od“, „do“ a „datum“) jsou uloženy jako \texttt{DATE} bez časové zóny -- tato aplikace zajišťuje konzistenci.
+\item Maximální rozsah číselných sloupců (\texttt{NUMBER(38,2)}) odpovídá české měnové jednotce (Kč) s danou přesností na haléře.
+\end{list}
+Tato omezení zajišťují základní konzistenci dat a umožňují bezpečný provoz aplikace nad databází bez nutnosti dodatečných triggerů či procedur.
+
+\newpage
+
+% --- pohledy ---
+\section{Reprezentativní databázové pohledy}
+
+Tato kapitola obsahuje databázové pohledy, které poskytují přehledy a souhrnné informace o aktuálním stavu provozu kina.
+
+\subsection{Pohled -- naklady-celkove.sql}
+
+\subsubsection{Slovní popis dotazu}
+
+Poskytuje celkový týdenní náklad kina na personál vyjádřený jedinou číselnou hodnotou. Výpočet probíhá ve dvou úrovních: nejprve se pro každého zaměstnance (\texttt{SOUCAST\_PERSONALU = 1}) vypočítá součet nákladů za všechny jeho směny v týdnu jako součty:
+\begin{center}
+$\bigl(\text{mzda na pozici} + \text{bonus za směnu} + \text{bonus za den}\bigr) \times 7$
+\end{center}
+kde číslem 7 je převedena 8hodinová směna včetně 1hodinové přestávky na skutečně odpracovaných 7 hodin. Tyto individuální sumy se pak agregují funkcí \texttt{SUM} přes všechny přihlašovací jména (atribut „login“), čímž vznikne jediná hodnota \texttt{NAKLADY\_NA\_TYDEN}. Pohled tak slouží jako rychlý ukazatel celkových osobních nákladů za týden.
+\subsubsection{SQL kód dotazu}
+
+\begin{lstlisting}
+CREATE OR REPLACE VIEW NAKLADY_NA_TYDEN AS SELECT SUM(NAKLAD) AS NAKLADY_NA_TYDEN
+FROM (
+    SELECT LOGIN,
+    	SUM(ZA_SMENU) AS NAKLAD
+    FROM (
+        SELECT o.LOGIN AS LOGIN,
+        	((pp.MZDA + s.BONUS + d.BONUS)*7) AS ZA_SMENU
+        FROM PRACOVNI_POZICE pp
+        JOIN PRACOVNI_POZICE_A_DNY ppd ON ppd.PRACOVNI_POZICE_ID = pp.ID
+        JOIN DNY d ON d.ID = ppd.DNY_ID
+        JOIN SMENA s ON s.ID = pp.SMENA_ID
+        JOIN OSOBA o ON o.ID = pp.OSOBA_ID 
+        JOIN MISTO m ON m.ID = pp.MISTO_ID
+        WHERE o.SOUCAST_PERSONALU = 1
+        ORDER BY pp.NAZEV, o.LOGIN, s.NAZEV, m.NAZEV
+    )
+    GROUP BY LOGIN
+);
+\end{lstlisting}
+
+\subsubsection{Odpověď na dotaz}
+
+\begin{center}
+\captionof{table}{Odpověď na naklady-celkove.sql}
+\label{tab:naklady}
+\vspace{5mm}
+\begin{tabular}{c}
+\toprule
+\textbf{NAKLADY\_NA\_TYDEN} \\ \midrule
+\csvreader[no head, late after line=\\, separator=semicolon]{csv/naklady-celkove.csv}{}%
+{\csvcoli}%
+\bottomrule
+\end{tabular}
+\end{center}
+
+\newpage
+
+\subsection{Pohled -- naklady-jednotlive.sql}
+
+\subsubsection{Slovní popis dotazu}
+
+Generuje detailní přehled týdenních nákladů rozpočítaný na jednotlivé zaměstnance. Pro každý záznam pracovní pozice a dne se nejprve vypočítá náklad za směnu stejným vzorcem:
+\begin{center}
+$\bigl(\text{mzda na pozici} + \text{bonus za směnu} + \text{bonus za den}\bigr) \times 7$
+\end{center}
+Hodnoty se následně seskupí podle \texttt{LOGIN} a sečtou, čímž vznikne dvojice \texttt{LOGIN} a \texttt{NAKLADY\_ZA\_TYDEN}. Díky tomu pro příklad manažer okamžitě vidí, kolik stojí provoz konkrétního člena personálu za celý týden.
+
+\subsubsection{SQL kód dotazu}
+
+\begin{lstlisting}
+CREATE OR REPLACE VIEW NAKLADY_NA_TYDEN_JEDNOTLIVE AS SELECT LOGIN,
+       SUM(ZA_SMENU) AS NAKLADY_ZA_TYDEN
+FROM (
+    SELECT o.LOGIN AS LOGIN,
+           ((pp.MZDA + s.BONUS + d.BONUS)*7) AS ZA_SMENU
+    FROM PRACOVNI_POZICE pp
+    JOIN PRACOVNI_POZICE_A_DNY ppd ON ppd.PRACOVNI_POZICE_ID = pp.ID
+    JOIN DNY d ON d.ID = ppd.DNY_ID
+    JOIN SMENA s ON s.ID = pp.SMENA_ID
+    JOIN OSOBA o ON o.ID = pp.OSOBA_ID 
+    JOIN MISTO m ON m.ID = pp.MISTO_ID
+    WHERE o.SOUCAST_PERSONALU = 1
+    ORDER BY pp.NAZEV, o.LOGIN, s.NAZEV, m.NAZEV
+)
+GROUP BY LOGIN;
+\end{lstlisting}
+
+\subsubsection{Odpověď na dotaz}
+
+\begin{center}
+\captionof{table}{Odpověď na naklady-jednotlive.sql}
+\label{tab:nakladyj}
+\vspace{5mm}
+\begin{tabular}{cc}
+\toprule
+\textbf{LOGIN} & \textbf{NAKLADY\_ZA\_TYDEN} \\ \midrule
+\csvreader[no head, late after line=\\, separator=semicolon]{csv/naklady-jednotlive.csv}{}%
+{\csvcoli & \csvcolii}%
+\bottomrule
+\end{tabular}
+\end{center}
+
+\newpage
+
+\subsection{Pohled -- pracovni-pozice-info.sql}
+
+\subsubsection{Slovní popis dotazu}
+
+Podává úplnou mapu obsazených pracovních pozic včetně finančního ohodnocení. Každý řádek odpovídá unikátní kombinaci pozice, zaměstnanec, směna, den a místo. Sloupce \texttt{ZA\_HODINU} a \texttt{ZA\_SMENU} počítají přímé osobní náklady podle vzorců:
+\begin{center}
+$\text{mzda na pozici} + \text{bonus za směnu} + \text{bonus za den}$
+\end{center}
+\begin{center}
+$\bigl(\text{mzda na pozici} + \text{bonus za směnu} + \text{bonus za den}\bigr) \times 7$
+\end{center}
+Příznak \texttt{FUNGUJE} převádí bitovou hodnotu \texttt{pp.FUNGUJE} na čitelné „ANO “ / „NE“. Filtr \texttt{SOUCAST\_PERSONALU~=~1} omezuje výstup pouze na aktivní zaměstnance; řazení podle názvu pozice, přihlašovacího jména, směny a místa usnadňuje kontrolu plánu i rozpočtu.
+
+\subsubsection{SQL kód dotazu}
+
+\begin{lstlisting}
+CREATE OR REPLACE VIEW PRACOVNI_POZICE_INFO AS SELECT pp.NAZEV AS PRACOVNI_POZICE, 
+       s.NAZEV AS SMENA, 
+       o.LOGIN AS ZAMESTNANEC,
+       m.NAZEV AS MISTO,
+       d.DEN AS DEN,
+       (pp.MZDA + s.BONUS + d.BONUS) AS ZA_HODINU,
+       ((pp.MZDA + s.BONUS + d.BONUS)*7) AS ZA_SMENU,
+       CASE pp.FUNGUJE
+            WHEN 1 THEN 'ANO'
+            WHEN 0 THEN 'NE'
+       END AS FUNGUJE
+FROM PRACOVNI_POZICE pp
+JOIN PRACOVNI_POZICE_A_DNY ppd ON ppd.PRACOVNI_POZICE_ID = pp.ID
+JOIN DNY d ON d.ID = ppd.DNY_ID
+JOIN SMENA s ON s.ID = pp.SMENA_ID
+JOIN OSOBA o ON o.ID = pp.OSOBA_ID 
+JOIN MISTO m ON m.ID = pp.MISTO_ID
+WHERE o.SOUCAST_PERSONALU = 1
+ORDER BY pp.NAZEV, o.LOGIN, s.NAZEV, m.NAZEV;
+\end{lstlisting}
+
+\newpage
+
+\subsubsection{Odpověď na dotaz}
+
+\begin{center}
+\captionof{table}{Odpověď na pracovni-pozice-info.sql (první část)}
+\label{tab:pp1}
+\vspace{5mm}
+\scriptsize
+\begin{tabular}{cccccccc}
+\toprule
+\textbf{PRACOVNI\_POZICE} & \textbf{SMENA} & \textbf{ZAMESTNANEC} & \textbf{MISTO} & \textbf{DEN} & \textbf{ZA\_HODINU} & \textbf{ZA\_SMENU} & \textbf{FUNGUJE} \\ \midrule
+\csvreader[no head, late after line=\\, separator=semicolon]{csv/pracovni-pozice-info.csv}{}%
+{\csvcoli & \csvcolii & \csvcoliii & \csvcoliv & \csvcolv & \csvcolvi & \csvcolvii & \csvcolviii}%
+\bottomrule
+\end{tabular}
+\end{center}
+
+\newpage
+
+\begin{center}
+\captionof{table}{Odpověď na pracovni-pozice-info.sql (druhá část)}
+\label{tab:pp2}
+\vspace{5mm}
+\scriptsize
+\begin{tabular}{cccccccc}
+\toprule
+\textbf{PRACOVNI\_POZICE} & \textbf{SMENA} & \textbf{ZAMESTNANEC} & \textbf{MISTO} & \textbf{DEN} & \textbf{ZA\_HODINU} & \textbf{ZA\_SMENU} & \textbf{FUNGUJE} \\ \midrule
+\csvreader[no head, late after line=\\, separator=semicolon]{csv/pracovni-pozice-info-2.csv}{}%
+{\csvcoli & \csvcolii & \csvcoliii & \csvcoliv & \csvcolv & \csvcolvi & \csvcolvii & \csvcolviii}%
+\bottomrule
+\end{tabular}
+\end{center}
+
+\newpage
+
+\subsection{Pohled -- promitani-info.sql}
+
+\subsubsection{Slovní popis dotazu}
+
+Sestavuje kompletní statistiky každého promítání. Agregací přes \texttt{ID} promítání získá jeden řádek obsahující název filmu, formátované datum, název sálu, celkový počet vydaných vstupenek (včetně rezervací), počet skutečně zaplacených vstupenek a kapacitu sálu. Rozdíl mezi kapacitou a vydanými vstupenkami okamžitě prozradí obsazenost; poměr prodaných k vydaným ukazuje míru úspěšného prodeje. Pohled tedy slouží jako operativní dashboard pro kontrolu návštěvnické poptávky.
+
+\subsubsection{SQL kód dotazu}
+
+\begin{lstlisting}
+CREATE OR REPLACE VIEW PROMITANI_INFO AS SELECT f.NAZEV, 
+       TO_CHAR(p.DATUM, 'DD. MM. YYYY') AS DATUM,
+       m.NAZEV AS MISTO,
+       COUNT(v.ZAPLACENO) AS VYDANE_VSTUPENKY,
+       COUNT(CASE WHEN v.ZAPLACENO = 1 THEN 1 END) AS PRODANE_VSTUPENKY,
+       m.KAPACITA
+FROM PROMITANI p
+JOIN VSTUPENKA v ON v.PROMITANI_ID = p.ID
+JOIN FILM f ON f.ID = p.FILM_ID
+JOIN MISTO m ON m.ID = p.MISTO_ID
+GROUP BY p.ID, f.NAZEV, p.DATUM, m.NAZEV, m.KAPACITA;
+\end{lstlisting}
+
+\subsubsection{Odpověď na dotaz}
+
+\begin{center}
+\captionof{table}{Odpověď na promitani-info.sql}
+\label{tab:promitani}
+\vspace{5mm}
+\small
+\begin{tabular}{cccccc}
+\toprule
+\textbf{NAZEV} & \textbf{DATUM} & \textbf{MISTO} & \textbf{VYDANE\_VSTUPENKY} & \textbf{PRODANE\_VSTUPENKY} & \textbf{KAPACITA} \\ \midrule
+\csvreader[no head, late after line=\\, separator=semicolon]{csv/promitani-info.csv}{}%
+{\csvcoli & \csvcolii & \csvcoliii & \csvcoliv & \csvcolv & \csvcolvi}%
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Pohled -- smena-info.sql}
+
+\subsubsection{Slovní popis dotazu}
+
+Poskytuje čistý výpis všech směn uložených v tabulce \texttt{SMENA}. Vrací název směny, počáteční a koncový čas ve formátu \texttt{HH24:MI}. Protože neobsahuje žádné filtry ani agregační funkce, funguje jako referenční seznam pracovních úseků, které jsou dále využívány při plánování personálu i při finančních výpočtech v ostatních pohledech.
+
+\subsubsection{SQL kód dotazu}
+
+\begin{lstlisting}
+CREATE OR REPLACE VIEW SMENA_INFO AS SELECT s.NAZEV AS NAZEV,
+       TO_CHAR(s.OD, 'HH24:MI') AS ZACATEK,
+       TO_CHAR(s.DO, 'HH24:MI') AS KONEC
+FROM SMENA s;
+\end{lstlisting}
+
+\subsubsection{Odpověď na doataz}
+
+\begin{center}
+\captionof{table}{Odpověď na smena-info.sql}
+\label{tab:smena}
+\vspace{5mm}
+\begin{tabular}{ccc}
+\toprule
+\textbf{NAZEV} & \textbf{ZACATEK} & \textbf{KONEC} \\ \midrule
+\csvreader[no head, late after line=\\, separator=semicolon]{csv/smena-info.csv}{}%
+{\csvcoli & \csvcolii & \csvcoliii}%
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Pohled -- zisky-celkove.sql}
+
+\subsubsection{Slovní popis dotazu}
+
+Na úrovni celého kina sumuje dva klíčové ekonomické ukazatele:
+\begin{list}{}{}
+\item \texttt{PLANOVANE\_ZISKY} – potenciální tržbu, kdyby všechna místa byla prodána za průměrnou \newline cenu vstupenky
+\item \texttt{DOSAVADNI\_ZISKY} – skutečné peněžní toky z již zaplacených vstupenek
+\end{list}
+Výpočet probíhá nejprve pro jednotlivá promítání:
+\begin{center}
+$\text{cena vstupenky} \times \text{kapacita místa}$
+\end{center}
+\begin{center}
+$\text{cena vstupenky} \times \text{počet prodaných vstupenek}$
+\end{center}
+a následně se výsledky sečtou přes všechny promítání. Pohled tak dává okamžitou odpověď na otázku, \newline jak daleko je kino od maximálního možného výnosu.
+
+\subsubsection{SQL kód dotazu}
+
+\begin{lstlisting}
+CREATE OR REPLACE VIEW ZISKY AS SELECT SUM(ODHAD_ZA_PROMITANI) AS PLANOVANE_ZISKY,
+       SUM(ZATIM_ZA_PROMITANI) AS DOSAVADNI_ZISKY
+FROM (
+       SELECT f.NAZEV, 
+              TO_CHAR(p.DATUM, 'DD. MM. YYYY') AS DATUM,
+              (AVG(v.CENA) * m.KAPACITA) AS ODHAD_ZA_PROMITANI,
+              (AVG(v.CENA) * COUNT(CASE WHEN v.ZAPLACENO = 1 THEN 1 END)) AS ZATIM_ZA_PROMITANI
+       FROM PROMITANI p
+       JOIN VSTUPENKA v ON v.PROMITANI_ID = p.ID
+       JOIN FILM f ON f.ID = p.FILM_ID
+       JOIN MISTO m ON m.ID = p.MISTO_ID
+       GROUP BY p.ID, f.NAZEV, p.DATUM, m.KAPACITA
+);
+\end{lstlisting}
+
+\subsubsection{Odpověď na doataz}
+
+\begin{center}
+\captionof{table}{Odpověď na zisky-celkove.sql}
+\label{tab:zisky}
+\vspace{5mm}
+\begin{tabular}{cc}
+\toprule
+\textbf{PLANOVANE\_ZISKY} & \textbf{DOSAVADNI\_ZISKY} \\ \midrule
+\csvreader[no head, late after line=\\, separator=semicolon]{csv/zisky.csv}{}%
+{\csvcoli & \csvcolii}%
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Pohled -- zisky-jednotlive.sql}
+
+\subsubsection{Slovní popis dotazu}
+
+Detailně rozkládá ekonomiku na úroveň jednotlivých promítání. Pro každý projekční blok vypočítá stejným vzorcem:
+\begin{center}
+$\text{cena vstupenky} \times \text{kapacita místa}$
+\end{center}
+\begin{center}
+$\text{cena vstupenky} \times \text{počet prodaných vstupenek}$
+\end{center}
+Agregace \texttt{GROUP BY p.ID, f.NAZEV, p.DATUM, m.KAPACITA} zajistí, že každý řádek odpovídá právě jedné projekci. Výstup umožňuje sledovat, které konkrétní promítání zaostává či překonává očekávanou tržbu, a tedy kde je prostor pro optimalizaci cen nebo marketingu.
+
+\subsubsection{SQL kód dotazu}
+
+\begin{lstlisting}
+CREATE OR REPLACE VIEW ZISKY_JEDNOTLIVE AS SELECT f.NAZEV, 
+       TO_CHAR(p.DATUM, 'DD. MM. YYYY') AS DATUM,
+       (AVG(v.CENA) * m.KAPACITA) AS ODHAD_ZA_PROMITANI,
+       (AVG(v.CENA) * COUNT(CASE WHEN v.ZAPLACENO = 1 THEN 1 END)) AS ZATIM_ZA_PROMITANI
+FROM PROMITANI p
+JOIN VSTUPENKA v ON v.PROMITANI_ID = p.ID
+JOIN FILM f ON f.ID = p.FILM_ID
+JOIN MISTO m ON m.ID = p.MISTO_ID
+GROUP BY p.ID, f.NAZEV, p.DATUM, m.KAPACITA;
+\end{lstlisting}
+
+\subsubsection{Odpověď na doataz}
+
+\begin{center}
+\captionof{table}{Odpověď na zisky-jednotlive.sql}
+\label{tab:ziskyj}
+\vspace{5mm}
+\begin{tabular}{cccc}
+\toprule
+\textbf{NAZEV} & \textbf{DATUM} & \textbf{ODHAD\_ZA\_PROMITANI} & \textbf{ZATIM\_ZA\_PROMITANI} \\ \midrule
+\csvreader[no head, late after line=\\, separator=semicolon]{csv/zisky-jednotlive.csv}{}%
+{\csvcoli & \csvcolii & \csvcoliii & \csvcoliv}%
+\bottomrule
+\end{tabular}
+\end{center}
+
+\newpage
+
+% --- scénáře ---
+\section{Slovně komentované testovací scénáře}
+
+V této kapitole jsou popsány testovací scénáře sloužící k ověření funkčnosti databázového modelu a pohledů v kontextu provozu kina.
+
+\subsection{Scénář A}
+
+Tento scénář simuluje kompletní interakci nového návštěvníka s (neexistující) webovou aplikací kina. Jeho cílem je ověřit, zda systém správně reaguje na běžný uživatelský průchod: zobrazení volných vstupenek, registraci, nákup, platbu a následné zobrazení vlastních vstupenek. Scénář je implementován v jednom SQL skriptu \texttt{a-vse.sql}, který postupně volá dílčí skripty (\texttt{a1.sql} až \texttt{a4.sql}). Každá část odpovídá jednomu kroku diváka v aplikaci a zároveň ověřuje konzistenci příslušných pohledů.
+
+\subsubsection{Část -- Divák si prohlíží volná místa}
+
+\begin{enumerate}
+\item Divák hledá volné vstupenky na promítání a zobrazí se mu seznam všech volných míst pro všechna promítání.
+\end{enumerate}
+
+\begin{lstlisting}
+SELECT f.NAZEV AS FILM,
+       z.NAZEV AS ZANR,
+       TO_CHAR(p.DATUM, 'DD. MM. YYYY') AS DATUM,
+       TO_CHAR(p.OD, 'HH24:MI') AS ZACATEK,
+       m.NAZEV AS MISTO,
+       CASE
+        WHEN v.SEDADLO IS NULL THEN 'Nečíslováno'
+        ELSE TO_CHAR(v.SEDADLO) 
+       END AS CISLO_SEDADLA,
+       v.CENA AS CENA
+FROM VSTUPENKA v
+JOIN PROMITANI p ON p.ID = v.PROMITANI_ID
+JOIN MISTO m ON m.ID = p.MISTO_ID
+JOIN FILM f ON f.ID = p.FILM_ID
+JOIN ZANR z ON z.ID = f.ZANR_ID
+WHERE v.OSOBA_ID IS NULL;
+\end{lstlisting}
+\begin{list}{}{}
+\item \texttt{PROMITANI\_INFO} zatím neobsahuje žádné změny -- počet \texttt{PRODANE\_VSTUPENKY} odpovídá stavu před nákupem.
+\item Výsledek dotazu představuje „obrazovku“ s dostupnými sedadly, kterou vidí návštěvník.
+\end{list}
+
+\subsubsection{Část -- Registrace, dobití kreditu a nákup dvou vstupenek}
+
+\begin{enumerate}
+\item Divák vyplní formulář (přihlašovací jméno, e-mail, heslo) a registruje se.
+\item Divák přejde na svůj profil a dobije svůj kredit na 400 Kč.
+\item Vybere pondělní promítání filmu Leon, označí dvě volná místa a koupí dané vstupenky.
+\end{enumerate}
+
+\newpage
+
+\begin{lstlisting}
+INSERT INTO OSOBA (LOGIN, HESLO, EMAIL, KREDIT, SOUCAST_PERSONALU)
+VALUES ('pan_leto', 'tajneheslo', 'pan_leto@seznam.cz', 0, 0);
+COMMIT;
+
+UPDATE OSOBA
+SET KREDIT = KREDIT + 400
+WHERE LOGIN LIKE 'pan_leto';
+COMMIT;
+
+UPDATE VSTUPENKA
+SET OSOBA_ID = (SELECT ID FROM OSOBA WHERE LOGIN LIKE 'pan_leto'),
+    ZAPLACENO = 1
+WHERE ZAPLACENO = 0
+AND OSOBA_ID IS NULL
+AND PROMITANI_ID = 1
+AND ROWNUM <= 2;
+COMMIT;
+
+UPDATE OSOBA
+SET KREDIT = KREDIT - (
+        (SELECT CENA FROM VSTUPENKA WHERE PROMITANI_ID = 1 AND ROWNUM <= 1)*2
+    ) 
+WHERE LOGIN LIKE 'pan_leto';
+COMMIT;
+\end{lstlisting}
+\begin{list}{}{}
+\item \texttt{PROMITANI\_INFO} -- sloupec \texttt{PRODANE\_VSTUPENKY} se okamžitě zvýší o 2.
+\item \texttt{ZISKY} a \texttt{ZISKY\_JEDNOTLIVE} -- hodnota \texttt{ZATIM\_ZA\_PROMITANI} se navýší o cenu dvou vstupenek.
+Žádné personální pohledy (\texttt{PRACOVNI\_POZICE\_INFO}, \texttt{NAKLADY\_*}) se nemění – operace se týká pouze návštěvníka.
+\end{list}
+
+\subsubsection{Část -- Návštěvník se přesvědčí, že jsou vstupenky opravdu zakoupil}
+
+\begin{enumerate}
+\item Divák zkontroluje volné vstupenky na promítání a zobrazí se mu seznam všech volných míst pro všechna promítání. Divák očekává, že už neuvidí vstupenky, které zakoupil.
+\end{enumerate}
+
+\newpage
+
+\begin{lstlisting}
+SELECT f.NAZEV AS FILM,
+       z.NAZEV AS ZANR,
+       TO_CHAR(p.DATUM, 'DD. MM. YYYY') AS DATUM,
+       TO_CHAR(p.OD, 'HH24:MI') AS ZACATEK,
+       m.NAZEV AS MISTO,
+       CASE
+        WHEN v.SEDADLO IS NULL THEN 'Nečíslováno'
+        ELSE TO_CHAR(v.SEDADLO) 
+       END AS CISLO_SEDADLA,
+       v.CENA AS CENA
+FROM VSTUPENKA v
+JOIN PROMITANI p ON p.ID = v.PROMITANI_ID
+JOIN MISTO m ON m.ID = p.MISTO_ID
+JOIN FILM f ON f.ID = p.FILM_ID
+JOIN ZANR z ON z.ID = f.ZANR_ID
+WHERE v.OSOBA_ID IS NULL;
+\end{lstlisting}
+
+\begin{list}{}{}
+\item Volné vstupenky -- po opětovném spuštění \texttt{a3.sql} (stejný dotaz jako \texttt{a1.sql}) chybí právě 2 řádky, které nyní mají nastaveno \texttt{OSOBA\_ID = <divákovo ID>}.
+\item Výsledek dotazu představuje „obrazovku“ s dostupnými sedadly, kterou vidí návštěvník a která již neobsahuje vstupenky zakoupené divákem.
+\end{list}
+
+\subsubsection{Část -- Divák se přesvědčí, že vstupenky jsou jeho}
+
+\begin{enumerate}
+\item Divák na svém profilu zobrazí své vstupenky a zobrazí se mu seznam všech jeho vstupenek.
+\end{enumerate}
+
+\begin{lstlisting}
+SELECT f.NAZEV AS FILM,
+       z.NAZEV AS ZANR,
+       TO_CHAR(p.DATUM, 'DD. MM. YYYY') AS DATUM,
+       TO_CHAR(p.OD, 'HH24:MI') AS ZACATEK,
+       m.NAZEV AS MISTO,
+       CASE
+        WHEN v.SEDADLO IS NULL THEN 'Nečíslováno'
+        ELSE TO_CHAR(v.SEDADLO) 
+       END AS CISLO_SEDADLA,
+       v.CENA AS CENA
+FROM VSTUPENKA v
+JOIN PROMITANI p ON p.ID = v.PROMITANI_ID
+JOIN MISTO m ON m.ID = p.MISTO_ID
+JOIN FILM f ON f.ID = p.FILM_ID
+JOIN ZANR z ON z.ID = f.ZANR_ID
+WHERE v.OSOBA_ID = (SELECT ID FROM OSOBA WHERE LOGIN LIKE 'pan_leto');
+\end{lstlisting}
+
+\begin{list}{}{}
+\item Výsledek dotazu představuje „obrazovku“ s divákovo vstupenkami – obsahuje přesně 2 řádky s filmem Leon, datem a časem pondělního promítání.
+\end{list}
+
+Skript \texttt{a-vse.sql} simuluje všechny tyto kroky scénáře v tomto pořadí.
+
+\subsection{Scénář B}
+
+Tento scénář simuluje interní proces přípravy a následného prodeje vstupenek na vybrané promítání z pohledu pokladního či administrátora kina. Cílem je ověřit, zda systém správně reflektuje vydání nových vstupenek, jejich částečný prodej a okamžité dopady na ekonomické přehledy. Celý průběh je implementován v jednom SQL skriptu \texttt{b-vse.sql}, který sekvenčně volá dílčí skripty \texttt{b1.sql} až \texttt{b5.sql}.
+
+\subsubsection{Část -- Kontrola stavu před vydáním vstupenek}
+
+\begin{enumerate}
+\item Administrátor zkontroluje vstupenky k promítání číslo 3 a ověří, zda nejsou v systému již vydané.
+\end{enumerate}
+
+\begin{lstlisting}
+SELECT f.NAZEV,
+       TO_CHAR(p.OD, 'HH24:MI') AS ZACATEK_PROMITANI,
+       TO_CHAR(p.DO, 'HH24:MI') AS KONEC_PROMITANI,
+       TO_CHAR(p.DATUM, 'DD. MM. YYYY') AS DATUM,
+       v.SEDADLO, 
+       v.CENA,
+       CASE v.ZAPLACENO
+            WHEN 1 THEN 'ANO'
+            WHEN 0 THEN 'NE'
+       END AS ZAPLACENO,
+       o.LOGIN
+FROM VSTUPENKA v
+JOIN PROMITANI p ON p.ID = v.PROMITANI_ID
+JOIN FILM f ON f.ID = p.FILM_ID
+LEFT JOIN OSOBA o ON o.ID = v.OSOBA_ID
+WHERE p.ID = 3;
+\end{lstlisting}
+
+\begin{list}{}{}
+\item Výsledek je prázdný -- potvrzuje, že před zahájením předprodeje neexistují žádné vstupenky k promítání číslo 3.
+\item Pohled \texttt{PROMITANI\_INFO} pro dané promítání zobrazuje \texttt{VYDANE\_VSTUPENKY = 0} a \newline \texttt{PRODANE\_VSTUPENKY = 0}.
+\end{list}
+
+\subsubsection{Část -- Hromadné vydání vstupenek}
+
+\begin{enumerate}
+\item Administrátor se rozhodne vydat nové vstupenky a systém automaticky vygeneruje 30 číslovaných vstupenek (sedadla 1--30) s cenou 220 Kč dle zadání administrátora.
+\end{enumerate}
+
+\begin{lstlisting}
+INSERT INTO VSTUPENKA (CENA, ZAPLACENO, SEDADLO, PROMITANI_ID)
+VALUES (220, 0, 1, 3);
+
+...
+
+INSERT INTO VSTUPENKA (CENA, ZAPLACENO, SEDADLO, PROMITANI_ID)
+VALUES (220, 0, 30, 3);
+COMMIT;
+\end{lstlisting}
+
+\begin{list}{}{}
+\item Pohled \texttt{PROMITANI\_INFO} se změní -- sloupec \texttt{VYDANE\_VSTUPENKY} naroste na 30.
+\item Ekonomické pohledy \texttt{ZISKY} a \texttt{ZISKY\_JEDNOTLIVE} zvýší hodnotu \texttt{ODHAD\_ZA\_PROMITANI} o 
+\begin{center}
+	$30 \times 220$.
+\end{center}
+\end{list}
+
+\subsubsection{Část -- Částečný prodej vstupenek zákazníkům}
+
+\begin{enumerate}
+\item V pokladně přijdou dva zákazníci: první (\texttt{ID} 2) zakoupí 5 vstupenek, druhý (\texttt{ID} 10) zakoupí 1 vstupenku. Pokladní označí vstupenky jako zaplacené a přiřadí je k účtům zákazníků.
+\end{enumerate}
+
+\begin{lstlisting}
+UPDATE VSTUPENKA
+SET ZAPLACENO = 1, OSOBA_ID = 2
+WHERE ZAPLACENO = 0 AND PROMITANI_ID = 3
+  AND OSOBA_ID IS NULL AND ROWNUM <= 5;
+COMMIT;
+
+UPDATE OSOBA
+SET KREDIT = KREDIT - (220*5)
+WHERE ID = 2;
+COMMIT;
+
+UPDATE VSTUPENKA
+SET ZAPLACENO = 1, OSOBA_ID = 10
+WHERE ZAPLACENO = 0 AND PROMITANI_ID = 3
+  AND OSOBA_ID IS NULL AND ROWNUM <= 1;
+COMMIT;
+
+UPDATE OSOBA
+SET KREDIT = KREDIT - 220
+WHERE ID = 10;
+COMMIT;
+\end{lstlisting}
+
+\begin{list}{}{}
+\item Pohled \texttt{PROMITANI\_INFO} -- sloupec \texttt{PRODANE\_VSTUPENKY} naroste na 6.
+\item Pohled \texttt{ZISKY} -- hodnota \texttt{ZATIM\_ZA\_PROMITANI} vzroste o 
+\begin{center}
+	$6 \times 220$
+\end{center}
+\item Osobní pohledy zůstávají beze změny (operace se týká pouze prodeje, nikoli personálu).
+\end{list}
+
+\subsubsection{Část -- Kontrola stavu po prodeji}
+
+\begin{enumerate}
+\item Administrátor znovu zkontroluje vstupenky k promítání číslo 3 a ověří, že 6 vstupenek je prodaných, zbylých 24 stále čeká na zákazníka.
+\end{enumerate}
+
+\begin{lstlisting}
+SELECT f.NAZEV,
+       TO_CHAR(p.OD, 'HH24:MI') AS ZACATEK_PROMITANI,
+       TO_CHAR(p.DO, 'HH24:MI') AS KONEC_PROMITANI,
+       TO_CHAR(p.DATUM, 'DD. MM. YYYY') AS DATUM,
+       v.SEDADLO, 
+       v.CENA,
+       CASE v.ZAPLACENO
+            WHEN 1 THEN 'ANO'
+            WHEN 0 THEN 'NE'
+       END AS ZAPLACENO,
+       o.LOGIN
+FROM VSTUPENKA v
+JOIN PROMITANI p ON p.ID = v.PROMITANI_ID
+JOIN FILM f ON f.ID = p.FILM_ID
+LEFT JOIN OSOBA o ON o.ID = v.OSOBA_ID
+WHERE p.ID = 3;
+\end{lstlisting}
+
+\begin{list}{}{}
+\item Výsledek obsahuje 30 řádků: 6× \texttt{ZAPLACENO = 'ANO'} s přiřazeným loginem, \newline
+24× \texttt{ZAPLACENO = 'NE'} a prázdný login.
+\item Potvrzuje tak správnost předchozích kroků.
+\end{list}
+
+\subsubsection{Část -- Ekonomické shrnutí promítání}
+
+\begin{enumerate}
+\item Vedoucí kina si nechá zobrazit ekonomické shrnutí -- systém ukáže, kolik Kč již bylo utrženo a od kterých zákazníků.
+\end{enumerate}
+
+\begin{lstlisting}
+SELECT CASE
+        WHEN o.LOGIN IS NULL THEN '(Zatím neprodané)'
+        ELSE o.LOGIN
+       END AS LOGIN,
+       SUM(v.CENA) AS ZISK_KINA,
+       CASE 
+        WHEN o.KREDIT IS NULL THEN ' '
+        ELSE TO_CHAR (o.KREDIT) 
+       END AS ZUSTATEK_PO_UTRATE
+FROM VSTUPENKA v
+JOIN PROMITANI p ON p.ID = v.PROMITANI_ID
+LEFT JOIN OSOBA o ON o.ID = v.OSOBA_ID
+WHERE p.ID = 3
+GROUP BY v.OSOBA_ID, o.LOGIN, o.KREDIT;
+\end{lstlisting}
+
+\begin{list}{}{}
+\item Výsledek obsahuje dva skutečné řádky (osob s \texttt{ID} 2 a 10) s částkami 1100 Kč a 220 Kč a zůstatky kreditů po nákupu.
+\item Jeden řádek \texttt{'(Zatím neprodané)'} obsahuje částku 5 280 Kč ($24 \times 220$) -- plánovaný zisk z dosud neprodaných vstupenek.
+\end{list}
+
+Skript \texttt{b-vse.sql} simuluje všechny tyto kroky scénáře v tomto pořadí. 
+
+\subsection{Scénář C}
+
+Tento scénář demonstruje interní proces změny pracovní pozice zaměstnance v (neexistující) personální aplikaci kina. Jeho cílem je ověřit, zda systém správně zaznamená uvolnění původních pozic a přiřazení nové pozice jedinému zaměstnanci. Celý průběh je implementován v jednom SQL skriptu \texttt{c-vse.sql}, který postupně volá skripty \texttt{c1.sql} až \texttt{c3.sql}.
+
+\subsubsection{Část -- Zobrazení aktuálně volných pracovních pozic}
+
+\begin{enumerate}
+\item Vedoucí personálního oddělení si zobrazí přehled všech pozic, které aktuálně nemají přiřazeného zaměstnance.
+\end{enumerate}
+
+\begin{lstlisting}
+SELECT pp.NAZEV AS PRACOVNI_POZICE,
+       s.NAZEV AS SMENA,
+       CASE
+        WHEN pp.OSOBA_ID IS NULL THEN 'Neurčen'
+        ELSE TO_CHAR(pp.OSOBA_ID)
+       END AS ZAMESTNANEC,
+       CASE
+        WHEN pp.MISTO_ID IS NULL THEN 'Neurčeno'
+        ELSE TO_CHAR(m.NAZEV)
+       END AS MISTO
+FROM PRACOVNI_POZICE pp
+JOIN SMENA s ON s.ID = pp.SMENA_ID
+LEFT JOIN MISTO m ON m.ID = pp.MISTO_ID
+WHERE pp.OSOBA_ID IS NULL;
+\end{lstlisting}
+
+\begin{list}{}{}
+\item Výsledek dotazu představuje „obrazovku“ s volnými pracovními pozicemi, které jsou k dispozici pro nové nebo stávající zaměstnance.
+\item Pohled \texttt{PRACOVNI\_POZICE\_INFO} zobrazuje pouze pozice s přiřazenými zaměstnanci, proto volné pozice v tomto pohledu chybí.
+\end{list}
+
+\subsubsection{Část -- Zaměstnanec si vybere novou pozici a uvolní staré}
+
+\begin{enumerate}
+\item Zaměstnanec s přihlašovacím jménem \texttt{vasek} projeví zájem o pozici „Noční hlídač“. Personální oddělení mu tuto pozici přiřadí a současně uvolní všechny jeho dosavadní pozice, protože nová role je časově náročná.
+\end{enumerate}
+
+\begin{lstlisting}
+UPDATE PRACOVNI_POZICE
+SET OSOBA_ID = (
+    SELECT ID FROM OSOBA WHERE LOGIN LIKE 'vasek'
+),
+FUNGUJE = 1
+WHERE NAZEV LIKE 'Noční hlídač';
+COMMIT;
+
+UPDATE PRACOVNI_POZICE
+SET OSOBA_ID = NULL,
+FUNGUJE = 0
+WHERE NAZEV NOT LIKE 'Noční hlídač'
+  AND OSOBA_ID = (
+      SELECT ID FROM OSOBA WHERE LOGIN LIKE 'vasek'
+);
+COMMIT;
+\end{lstlisting}
+
+\begin{list}{}{}
+\item Pohled \texttt{PRACOVNI\_POZICE\_INFO} se změní -- zaměstnanec \texttt{vasek} je nyní viditelný pouze u pozice „Noční hlídač“.
+\item Pohledy \texttt{NAKLADY\_NA\_TYDEN} a \texttt{NAKLADY\_NA\_TYDEN\_JEDNOTLIVE} se automaticky přepočítají.
+\item Ekonomické pohledy \texttt{ZISKY} a \texttt{ZISKY\_JEDNOTLIVE} se změní, protože „Noční hlídač“ je nově \newline vykonávaná a určitá jinačí už nikoliv.
+\end{list}
+
+\subsubsection{Část -- Kontrola aktuálně volných pozic po změně}
+
+\begin{enumerate}
+\item Vedoucí personálního oddělení znovu zobrazí seznam volných pozic a ověří, které pozice byly uvolněny a které nově obsazeny.
+\end{enumerate}
+
+\newpage
+
+\begin{lstlisting}
+SELECT pp.NAZEV AS PRACOVNI_POZICE,
+       s.NAZEV AS SMENA,
+       CASE
+        WHEN pp.OSOBA_ID IS NULL THEN 'Neurčen'
+        ELSE TO_CHAR(pp.OSOBA_ID)
+       END AS ZAMESTNANEC,
+       CASE
+        WHEN pp.MISTO_ID IS NULL THEN 'Neurčeno'
+        ELSE TO_CHAR(m.NAZEV)
+       END AS MISTO
+FROM PRACOVNI_POZICE pp
+JOIN SMENA s ON s.ID = pp.SMENA_ID
+LEFT JOIN MISTO m ON m.ID = pp.MISTO_ID
+WHERE pp.OSOBA_ID IS NULL;
+\end{lstlisting}
+
+\begin{list}{}{}
+\item Výsledek obsahuje všechny pozice, které byly dříve vykonávané zaměstnancem \texttt{vasek}, nyní označené jako 'Neurcen'.
+\item Zároveň chybí pozice „Noční hlídač“, což potvrzuje, že byla úspěšně přiřazena.
+\item Tento krok slouží jako kontrola správnosti předchozích SQL příkazů a zajišťuje konzistenci dat v personálním systému.
+\end{list}
+
+Skript \texttt{c-vse.sql} simuluje všechny tyto kroky scénáře v tomto pořadí. 
+
+\newpage
+
+% --- závěr ---
+\section*{Závěr}
+
+V rámci semestrální práce se mi podařilo vytvořit komplexní databázový model pro podporu provozu kina, který pokrývá klíčové oblasti -- od promítání filmů, prodeje vstupenek až po personální a ekonomické přehledy. Databáze je navržena v 3. normální formě, obsahuje vazby M:N, číselníkové tabulky a implementuje základní integritní a referenční omezení. Díky tomu je datový model konzistentní a připravený pro reálné nasazení, byť asi v omezeném provozu, protože by v produkčním prostředí pravděpodobně vyžadoval rozšíření o další funkce jako např. skladové hospodaření, věrnostní systém nebo účetní agendu.
+
+Během realizace jsem si procvičil práci s relační databází Oracle, psaní komplexních SQL dotazů a vytváření pohledů pro agregaci dat v prostředí SQL Developer. Práce mě bavila zejména proto, že se týkala konkrétního a představitelného tématu. Mohl jsem při ní využít vlastní zkušenosti z návštěv kina a pracovat s reálnými daty o mých oblíbených filmech.
+
+\end{document}

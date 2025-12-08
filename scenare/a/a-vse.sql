@@ -1,0 +1,15 @@
+-- provedení všech příkazů najdnou
+SPOOL a-vse.log
+
+PROMPT (VOLNÉ VSTUPENKY)
+@a1.sql
+PROMPT (PŘIDÁNÍ DIVÁKA A ZAKOUPENÍ DVOU VSTUPENEK)
+@a2.sql
+PROMPT (VOLNÉ VSTUPENKY OPĚT)
+@a3.sql
+PROMPT (VSTUPENKY DIVÁKA)
+@a4.sql
+
+SPOOL OFF
+
+EXIT
