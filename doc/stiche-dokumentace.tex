@@ -122,7 +122,7 @@ Datový model pracuje s devíti základními entitami, které pokrývají komple
 
 \subsubsection{Referenční integrita}
 \begin{list}{}{}
-\item Všechny cizí klíče jsou definovány jako \texttt{NOT} \texttt{NULL} (kromě „osoba\_id“ u vstupenky a pracovní pozice, a „misto\_id“ u pracovní pozice, což umožňuje anonymní či nezakoupenou vstupenku, neobsazenou pozici a pozici s prozatím nenaplánovaným místem výkonu práce.
+\item Všechny cizí klíče jsou definovány jako \texttt{NOT} \texttt{NULL} (kromě „osoba\_id“ u vstupenky a~pracovní pozice, a~„misto\_id“ u pracovní pozice), umožňuje evidovat anonymní či nezakoupenou vstupenku, \\neobsazenoupozici a pozici s prozatím nenaplánovaným místem výkonu práce.
 \item Mazání nadřazených záznamů je omezeno existujícími vazbami -- např. nelze smazat záznam v tabulce \texttt{FILM}, na který existuje záznam s cizím klíčem v \texttt{PROMITANI}.
 \end{list}
 
